@@ -1,0 +1,9 @@
+| Project                           | Build                                | Main purpose                                            | Tools                               | You understand when...                                 |
+| --------------------------------- | ------------------------------------ | ------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------ |
+| **1. C Signal Processing Core**   | A pure C library and CLI             | Learn serious C, memory, files, algorithms              | GCC/Clang, GDB, sanitizers          | You can explain every pointer, buffer, struct, and bug |
+| **2. Build + Test System**        | Make + CMake version of Project 1    | Learn compilation, linking, libraries, build automation | Make, CMake, Ninja, ar, nm, objdump | You know how `.c` becomes `.o`, `.a`, and executable   |
+| **3. Bare-Metal QEMU Runtime**    | Tiny kernel/runtime that runs C code | Learn freestanding C, linker scripts, boot, no OS       | QEMU, linker script, cross compiler | You can run code without Linux/Windows helping you     |
+| **4. xv6 OS Modification**        | Modify real teaching OS              | Learn process, syscall, scheduler, VM, filesystem       | xv6-riscv, QEMU, GDB                | You understand what a normal OS provides to C programs |
+| **5. LLVM + Embedded Deployment** | Analyze and deploy your C algorithm  | Learn compiler IR, optimization, embedded constraints   | Clang, LLVM IR, opt, Buildroot/QEMU | You can measure and justify computational efficiency   |
+
+
