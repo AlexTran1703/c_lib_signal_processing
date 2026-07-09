@@ -16,14 +16,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(BUILD_MODE "example" CACHE STRING "Build mode: main or example")
 set_property(CACHE BUILD_MODE PROPERTY STRINGS main example)
 
-set(EXAMPLE_SOURCE "" CACHE STRING
-    "Specific example source file under ./example, e.g. example_plotgnuplot/example_plotgnuplot.c"
-)
-
-# Select one example file:
-# cmake -S . -B build -DEXAMPLE_SOURCE=fir_demo.c
+# Select one example file (path relative to ./example):
+#   cmake -S . -B build -DEXAMPLE_SOURCE=example_plotgnuplot.c
 #
-# If empty, CMake builds all .c files inside ./example
+# If empty, CMake builds all .c files inside ./example.
 set(EXAMPLE_SOURCE "" CACHE STRING "Specific example source file to build from ./example")
 
 # ------------------------------------------------------------

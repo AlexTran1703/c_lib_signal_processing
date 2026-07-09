@@ -9,7 +9,9 @@ param(
 
     [string]$BuildType = "Release",
 
-    [string]$Example_File= $null,
+    # Single example file to build, relative to ./example (e.g. example_narray1d.c).
+    # If empty, all examples are built.
+    [string]$Example_File = "",
 
     [bool]$RemoveBuildDir = $true
 
@@ -22,7 +24,7 @@ $build_config = @{
     Compiler = $Compiler
     Mode     = $Mode
     BuildType = $BuildType
-    "Example_File" = $Example_File
+    Example_File = $Example_File
     RemoveBuildDir = $RemoveBuildDir
 }
 
@@ -51,9 +53,8 @@ if ($build_config["Compiler"] -eq "clang") {
     $build_command += " -G Ninja -DCMAKE_C_COMPILER=clang"
 }
 
-$build_command += " -DBUILD_MODE=$($build_config["Mode"])"
-if ($build_config["Mode"] -eq "example" -and $build_config["Example_File"] -ne $null) {
-    $build_command += " -DEXAMPLE_FILE=$($build_config["Example_File"])"
+if ($build_config["Mode"] -eq "example" -and -not [string]::IsNullOrWhiteSpace($build_config["Example_File"])) {
+    $build_command += " -DEXAMPLE_SOURCE=`"$($build_config["Example_File"])`""
 }
 
 Invoke-Expression $build_command

@@ -6,12 +6,12 @@
 int main(int argc, char *argv[]) {
     // Data arrays
     size_t size = 4;
-    NArray1D array = create_narray1d( (DataType) DOUBLE_TYPE, (size_t) size);
-    array.data.doubleValue[0] = 1.0;
-    array.data.doubleValue[1] = 5.0;
-    array.data.doubleValue[2] = 3.0;
-    array.data.doubleValue[3] = -4.0;
-    int n = 4;
+    NArray1D *array = malloc(sizeof(NArray1D));
+    narray1d_create(array, DOUBLE_TYPE, size);
+    narray1d_set_item(array, 0, &(double){1.0});
+    narray1d_set_item(array, 1, &(double){5.0});
+    narray1d_set_item(array, 2, &(double){3.0});
+    narray1d_set_item(array, 3, &(double){-1.0});
 
     // Open a persistent pipeline to Gnuplot
     FILE *gnuplotPipe = POPEN("gnuplot -persistent", "w");
@@ -26,8 +26,10 @@ int main(int argc, char *argv[]) {
         fprintf(gnuplotPipe, "plot '-' with linespoints title 'Data'\n");
         
         // Stream the coordinates to the pipe
-        for (int i = 0; i < n; i++) {
-            fprintf(gnuplotPipe, "%ld %lf\n", i, array.data.doubleValue[i]);
+        for (int i = 0; i < size; i++) {
+            double value;
+            narray1d_get_item(array, (size_t) i, &value);
+            fprintf(gnuplotPipe, "%ld %lf\n", i, (double) value);
         }
         
         // Send the termination character 'e' to signify end of data
