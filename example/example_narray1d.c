@@ -26,10 +26,10 @@ int main(int argc, char *argv[]) {
         fprintf(gnuplotPipe, "plot '-' with linespoints title 'Data'\n");
         
         // Stream the coordinates to the pipe
-        for (int i = 0; i < size; i++) {
+        for (size_t i = 0; i < size; i++) {
             double value;
-            narray1d_get_item(array, (size_t) i, &value);
-            fprintf(gnuplotPipe, "%ld %lf\n", i, (double) value);
+            narray1d_get_item(array, i, &value);
+            fprintf(gnuplotPipe, "%d %lf\n", (int) i, (double) value);
         }
         
         // Send the termination character 'e' to signify end of data
