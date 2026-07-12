@@ -4,7 +4,7 @@
 #include "utils_gnuplot_wrapper.h"
 #include "utils_env.h"
 
-FILE* utils_gnuplot_open_pipe() {
+FILE* utils_gnuplot_open_pipe(void) {
     FILE* gnuplotPipe = POPEN("gnuplot -persistent", "w");
     if (gnuplotPipe == NULL) {
         fprintf(stderr, "Failed to create gnuplot pipe. Ensure that gnuplot is installed and available in your PATH.\n");

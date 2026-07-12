@@ -182,20 +182,143 @@ bool narray_compute_strides(NArray *array) {
         return false;
     }
 
-    array->strides[array->ndim - 1] = array->item_size;
+    array->strides[array->ndim - 1] = (ptrdiff_t) array->item_size;
 
     for (size_t d = array->ndim - 1; d > 0; --d) {
-        array->strides[d - 1] = array->strides[d] * array->shape[d];
+        array->strides[d - 1] = array->strides[d] * ((ptrdiff_t) array->shape[d]);
     }
 
     return true;
 }
 
+bool narray_compute_c_strides(NArray *array) {
+    if (array == NULL || array->ndim == 0) {
+        return false;
+    }
+
+    ptrdiff_t stride = (ptrdiff_t)array->item_size;
+
+    for (size_t d = array->ndim; d > 0; d--) {
+        size_t axis = d - 1;
+        array->strides[axis] = stride;
+        stride *= (ptrdiff_t)array->shape[axis];
+    }
+
+    return true;
+}
+
+bool narray_compute_f_strides(NArray *array) {
+    if (array == NULL || array->ndim == 0 || array->ndim > NARRAY_MAX_DIMS) {
+        fprintf(stderr, "invalid input parameters\n");
+        return false;
+    }
+
+    ptrdiff_t stride = (ptrdiff_t) array->item_size;
+
+    for (size_t d = 0; d < array->ndim; ++d) {
+        array->strides[d] = stride;
+        stride *= (ptrdiff_t) array->shape[d];
+    }
+
+    return true;
+}
+
+void *narray_at(NArray *array, const size_t *indices) {
+    if (array == NULL || array->data == NULL || indices == NULL) {
+        return NULL;
+    }
+
+    ptrdiff_t offset = 0;
+
+    for (size_t d = 0; d < array->ndim; d++) {
+        if (indices[d] >= array->shape[d]) {
+            return NULL;
+        }
+
+        offset += (ptrdiff_t) indices[d] * array->strides[d];
+    }
+
+    return (char *)array->data + offset;
+}
+
+const void *narray_at_const(const NArray *array, const size_t *indices) {
+    if (array == NULL || array->data == NULL || indices == NULL) {
+        return NULL;
+    }
+
+    ptrdiff_t offset = 0;
+
+    for (size_t d = 0; d < array->ndim; d++) {
+        if (indices[d] >= array->shape[d]) {
+            return NULL;
+        }
+
+        offset += (ptrdiff_t) indices[d] * array->strides[d];
+    }
+
+    return (const char *)array->data + offset;
+}
+
+bool narray_is_c_contiguous(const NArray *array)
+{
+    if(array == NULL) {
+        return false;
+    }
+
+     ptrdiff_t expected = (ptrdiff_t)array->item_size;
+
+    for (size_t d = array->ndim - 1; d > 0; d--) {
+
+        if (array->shape[d] == 1) {
+            continue;
+        }
+
+        if (array->strides[d] != expected) {
+            return false;
+        }
+
+        expected *= (ptrdiff_t) array->shape[d-1];
+
+    }
+
+    return true;
+}
+
+bool narray_is_f_contiguous(const NArray *array)
+{
+    if(array == NULL) {
+        return false;
+    }
+
+     ptrdiff_t expected = (ptrdiff_t) array->item_size;
+
+    for (size_t d = 0; d < array->ndim; d++) {
+        if (array->shape[d] == 1) {
+            continue;
+        }
+
+        if (array->strides[d] != expected) {
+            return false;
+        }
+
+        expected *= (ptrdiff_t) array->shape[d];
+
+    }
+
+    return true;
+}
+
+bool narray_is_contiguous(const NArray *array) {
+    return narray_is_c_contiguous(array) || narray_is_f_contiguous(array);
+}
+
+
 bool narray_create(
     NArray *array, 
     DataType type,
     size_t ndim,
-    const size_t *shape    
+    const size_t *shape,
+    NArrayOrder order
 ) {
     if (array == NULL || shape == NULL || ndim == 0 || ndim > NARRAY_MAX_DIMS) {
         fprintf(stderr, "invalid input parameters\n");
@@ -221,22 +344,38 @@ bool narray_create(
         return false;
     }
 
-    array->data = malloc(total_item * item_size);
-    if (array->data == NULL && total_item != 0) {
+    size_t nbytes = total_item * item_size;
+
+    void *data = malloc(nbytes);
+    if (data == NULL && total_item != 0) {
         fprintf(stderr, "memory allocation failed\n");
         return false;
     }
-    memset(array->data, 0, total_item * item_size);
+    memset(data, 0, total_item * item_size);
 
+    array->data = data;
+    array->base = data;
     array->type = type;
+    array->nbytes = nbytes;
     array->ndim = ndim;
     array->item_size = item_size;
     array->total_items = total_item;
     memcpy(array->shape, shape, ndim * sizeof(size_t));
 
     array->own_data = true;
+    array->is_view = false;
 
-    bool strides_computed = narray_compute_strides(array);
+    bool strides_computed;
+    if(order == NARRAY_ORDER_C) {
+        strides_computed =  narray_compute_c_strides(array);
+    }
+    else if(order == NARRAY_ORDER_F) {
+        strides_computed =  narray_compute_f_strides(array);
+    }
+    else {
+        strides_computed = narray_compute_strides(array);
+    }
+
     if (!strides_computed) {
         fprintf(stderr, "failed to compute strides\n");
         free(array->data);
@@ -252,85 +391,53 @@ void narray_free(NArray *array) {
         return;
     }
 
-    if (array->own_data) {
+    if (array->own_data && array->base != NULL) {
         free(array->data);
     }
 
     array->data = NULL;
+    array->base = NULL;
     array->ndim = 0;
     array->item_size = 0;
+    array->nbytes = 0;
     array->total_items = 0;
     array->own_data = false;
+     array->is_view = false;
 }
 
-bool narray_offset
-(
-    const NArray *array,
-    const size_t *indices,
-    size_t *out_offset
-) {
-    if (array == NULL || indices == NULL || out_offset == NULL) {
-        fprintf(stderr, "[narray_offset] Invalid input parameters\n");
-        return false;
-    }
-    if (array->ndim == 0 || array->ndim > NARRAY_MAX_DIMS || array->strides == NULL || array->shape == NULL) {
-        fprintf(stderr, "[narray_offset] Array properties are invalid, Initialize the array first\n");
-        return false;
-    }
-
-    for(size_t d = 0; d < array->ndim; ++d) {
-        if(indices[d] >= array->shape[d]) {
-            fprintf(stderr, "[narray_offset] Index %zu out of bounds for dimension %zu with size %zu\n", indices[d], d, array->shape[d]);
-            return false;
-        }
-        *out_offset += indices[d] * array->strides[d];
-    }
-    return true;
-}
-
-bool narray_set_item
-(
-    const NArray *array,
+bool narray_set_item(
+    NArray *array,
     const size_t *indices,
     const void *value
 ) {
-    if (array == NULL || indices == NULL || value == NULL) {
-        fprintf(stderr, "[narray_set_item] Invalid input parameters\n");
+    if (value == NULL) {
         return false;
     }
 
-    size_t offset = 0;
-
-    if(!narray_offset(array, indices, &offset)) {
-        fprintf(stderr, "[narray_set_item] Failed to compute offset\n");
+    void *dst = narray_at(array, indices);
+    if (dst == NULL) {
         return false;
     }
 
-    char *base = (char *) array->data;
-    memcpy(base + offset, value, array->item_size);
+    memcpy(dst, value, array->item_size);
     return true;
 }
 
-bool narray_get_item
-(
+bool narray_get_item(
     const NArray *array,
     const size_t *indices,
     void *out_value
 ) {
-    if (array == NULL || indices == NULL || out_value == NULL) {
-        fprintf(stderr, "[narray_get_item] Invalid input parameters\n");
+    if (out_value == NULL) {
         return false;
     }
 
-    size_t offset = 0;
-
-    if(!narray_offset(array, indices, &offset)) {
-        fprintf(stderr, "[narray_get_item] Failed to compute offset\n");
+    const void *src = narray_at_const(array, indices);
+    if (src == NULL) {
         return false;
     }
 
-    const char *base = (const char *) array->data;
-    memcpy(out_value, base + offset, array->item_size);
+    memcpy(out_value, src, array->item_size);
     return true;
 }
 
@@ -401,7 +508,7 @@ static bool narray_print_recursive(
     fprintf(out, "[");
 
     for (size_t i = 0; i < array->shape[dim]; i++) {
-        size_t next_offset = byte_offset + i * array->strides[dim];
+        size_t next_offset = byte_offset + i * (size_t) array->strides[dim];
 
         if (!narray_print_recursive(out, array, dim + 1, next_offset)) {
             return false;
@@ -480,9 +587,100 @@ bool narray_print_info(const NArray *array) {
     return true;
 }
 
+bool narray_reshape_view(
+    const NArray *src,
+    NArray *view,
+    size_t new_ndim,
+    const size_t *new_shape,
+    NArrayOrder order
+)
+{
+    if(src == NULL || view == NULL || new_shape == NULL) {
+        return false;
+    }
 
-// Narray array;
-// size_t shape[2] = {2, 3};
-// narray_create(&array, DOUBLE_TYPE, _NARRAY_GET_SHAPE_DIMENSION(shape), shape);
-// narray_set_item(&array, (size_t[]) {0, 0}, &(double){2.0});
+    if (new_ndim == 0 || new_ndim > NARRAY_MAX_DIMS) {
+        return false;
+    }
 
+    size_t new_total = 1;
+
+    for (size_t d = 0; d < new_ndim; d++) {
+        if (new_shape[d] == 0) {
+            return false;
+        }
+
+        if (new_total > SIZE_MAX / new_shape[d]) {
+            return false;
+        }
+
+        new_total *= new_shape[d];
+    }
+
+    if (new_total != src->total_items) {
+        return false;
+    }
+
+    if (order == NARRAY_ORDER_C && !narray_is_c_contiguous(src)) {
+        return false;
+    }
+
+    if (order == NARRAY_ORDER_F && !narray_is_f_contiguous(src)) {
+        return false;
+    }
+
+    *view = *src;
+    view->ndim = new_ndim;
+    view->total_items = new_total;
+    view->own_data = false;
+    view->is_view = true;
+
+    for (size_t d = 0; d < new_ndim; d++) {
+        view->shape[d] = new_shape[d];
+    }
+
+    if (order == NARRAY_ORDER_C) {
+        return narray_compute_c_strides(view);
+    }
+    else if (order == NARRAY_ORDER_F) {
+        return narray_compute_f_strides(view);
+    }
+
+    return narray_compute_strides(view);
+}
+
+bool narray_transpose_view(
+    const NArray *src,
+    NArray *view,
+    const size_t *axes
+) {
+    if (src == NULL || view == NULL || axes == NULL) {
+        return false;
+    }
+
+    bool seen[NARRAY_MAX_DIMS] = {false};
+
+    for (size_t d = 0; d < src->ndim; d++) {
+        if (axes[d] >= src->ndim) {
+            return false;
+        }
+
+        if (seen[axes[d]]) {
+            return false;
+        }
+
+        seen[axes[d]] = true;
+    }
+
+    *view = *src;
+
+    for (size_t d = 0; d < src->ndim; d++) {
+        view->shape[d] = src->shape[axes[d]];
+        view->strides[d] = src->strides[axes[d]];
+    }
+
+    view->own_data = false;
+    view->is_view = true;
+
+    return true;
+}

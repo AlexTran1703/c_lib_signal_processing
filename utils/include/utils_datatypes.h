@@ -9,6 +9,13 @@ typedef enum {
     DOUBLE_TYPE,
 } DataType;
 
+typedef enum {
+    NARRAY_ORDER_C,
+    NARRAY_ORDER_F,
+    NARRAY_ORDER_KEEP,
+    NARRAY_ORDER_ANY
+} NArrayOrder;
+
 typedef union {
     int *intValue;
     float *floatValue;
@@ -41,7 +48,6 @@ bool narray1d_set_item(NArray1D *array, size_t index, const void *value);
     NArray1D structure
 */
 
-
 /* 
     Begin
     NArray structure
@@ -55,34 +61,65 @@ bool narray1d_set_item(NArray1D *array, size_t index, const void *value);
 // np.a.shape = [2, 3], ndim = 2, item_size = sizeof(double), strides = [3 * sizeof(double), sizeof(double)]
 typedef struct {
     void *data;
+
+    void *base;
+
     DataType type;
 
     size_t ndim;
     size_t item_size;
 
     size_t shape[NARRAY_MAX_DIMS];
-    size_t strides[NARRAY_MAX_DIMS];
-    
+
+     /*
+        Byte strides.
+
+        ptrdiff_t allows:
+        - positive strides
+        - zero strides for broadcasting
+        - negative strides for reversed views
+    */
+
+    ptrdiff_t strides[NARRAY_MAX_DIMS]; 
+
     size_t total_items;
+    size_t nbytes;
+
     bool own_data;
+    bool is_view;
+
 } NArray;
 
 
 bool narray_compute_strides(NArray *array);
 
-bool narray_create(NArray *array, DataType type,size_t ndim,const size_t *shape);
+bool narray_compute_c_strides(NArray *array);
+
+bool narray_compute_f_strides(NArray *array);
+
+bool narray_is_c_contiguous(const NArray *array);
+
+bool narray_is_f_contiguous(const NArray *array);
+
+bool narray_is_contiguous(const NArray *array);
+
+void *narray_at(NArray *array, const size_t *indices);
+
+const void *narray_at_const(const NArray *array, const size_t *indices);
+
+bool narray_create(NArray *array, DataType type,size_t ndim,const size_t *shape, NArrayOrder order);
 
 void narray_free(NArray *array);
 
-bool narray_offset(const NArray *array,const size_t *indices, size_t *out_offset);
-
-bool narray_set_item(const NArray *array, const size_t *indices, const void *value);
+bool narray_set_item(NArray *array, const size_t *indices, const void *value);
 
 bool narray_get_item(const NArray *array, const size_t *indices, void *out_value);
 
 bool narray_print_info(const NArray * array);
 
 bool narray_print_data(const NArray *array);
+
+bool narray_reshape_view(const NArray *src, NArray *view, size_t new_ndim, const size_t *new_shape, NArrayOrder order);
 /* 
     End
     NArray structure

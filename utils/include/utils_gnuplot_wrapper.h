@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include "utils_env.h"
 
-FILE* utils_gnuplot_open_pipe();
+FILE* utils_gnuplot_open_pipe(void);
 
 bool utils_gnuplot_set_title(FILE *gnuplotPipe, const char *title);
 
