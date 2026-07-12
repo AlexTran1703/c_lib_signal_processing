@@ -81,6 +81,8 @@ bool narray_set_item(const NArray *array, const size_t *indices, const void *val
 bool narray_get_item(const NArray *array, const size_t *indices, void *out_value);
 
 bool narray_print_info(const NArray * array);
+
+bool narray_print_data(const NArray *array);
 /* 
     End
     NArray structure

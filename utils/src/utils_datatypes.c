@@ -15,27 +15,31 @@ bool narray1d_datatype_itemsize(DataType type, size_t *out_item_size) {
         return false;
     }
 
-    switch (type) {
-        case INT_TYPE:
-            *out_item_size = sizeof(int);
-            return true;
-
-        case FLOAT_TYPE:
-            *out_item_size = sizeof(float);
-            return true;
-
-        case DOUBLE_TYPE:
-            *out_item_size = sizeof(double);
-            return true;
-
-        case UINT8_TYPE:
-            *out_item_size = sizeof(uint8_t);
-            return true;
-
-        default:
-            fprintf(stderr, "Invalid data type\n");
-            return false;
+    else if (type == INT_TYPE) {
+        *out_item_size = sizeof(int);
+        return true;
     }
+
+    else if (type == FLOAT_TYPE) {
+        *out_item_size = sizeof(float);
+        return true;
+    }
+
+    else if (type == DOUBLE_TYPE) {
+        *out_item_size = sizeof(double);
+        return true;
+    }
+
+    else if (type == UINT8_TYPE) {
+        *out_item_size = sizeof(uint8_t);
+        return true;
+    }
+
+    else {
+        fprintf(stderr, "Invalid data type\n");
+        return false;
+    }
+            
 }
 
 bool narray1d_create(NArray1D *array, DataType type, size_t size) {
@@ -354,26 +358,26 @@ bool narray_print_scalar(FILE *out, DataType type, const void *value) {
         return false;
     }
 
-    switch (type) {
-        case INT_TYPE:
-            fprintf(out, "%d", *(const int *)value);
-            return true;
+    else if (type == UINT8_TYPE) {
+        fprintf(out, "%u", (unsigned)*(const uint8_t *)value);
+        return true;
+    }
+    else if (type == INT_TYPE) {
+        fprintf(out, "%d", *(const int *)value);
+        return true;
+    }
+    else if (type == FLOAT_TYPE) {
+        fprintf(out, "%g", *(const float *)value);
+        return true;
+    }
+    else if (type == DOUBLE_TYPE) {
+        fprintf(out, "%g", *(const double *)value);
+        return true;
+    }
 
-        case FLOAT_TYPE:
-            fprintf(out, "%g", *(const float *)value);
-            return true;
-
-        case DOUBLE_TYPE:
-            fprintf(out, "%g", *(const double *)value);
-            return true;
-
-        case UINT8_TYPE:
-            fprintf(out, "%u", (unsigned)*(const uint8_t *)value);
-            return true;
-
-        default:
-            fprintf(out, "<unsupported>");
-            return false;
+    else {
+        fprintf(out, "<unsupported>");
+        return false;
     }
 }
 

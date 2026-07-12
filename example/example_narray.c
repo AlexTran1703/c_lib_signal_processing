@@ -15,6 +15,16 @@ int main(int argc, char *argv[]) {
     narray_set_item(array, (size_t[]){3}, &(double){3.0});
     narray_set_item(array, (size_t[]){5}, &(double){-1.0});
     narray_print_info(array);
+
+    size_t shape_test[] = {4, 6};
+    NArray *array_test = malloc(sizeof(NArray));
+    narray_create(array_test, DOUBLE_TYPE, _NARRAY_GET_SHAPE_DIMENSION(shape_test), shape_test);
+    narray_set_item(array_test, (size_t[]){0, 1}, &(double){1.0});
+    narray_set_item(array_test, (size_t[]){2, 2}, &(double){5.0});
+    narray_set_item(array_test, (size_t[]){3, 3}, &(double){3.0});
+    narray_set_item(array_test, (size_t[]){1, 5}, &(double){-1.0});
+
+    narray_print_info(array_test);
     // Open a persistent pipeline to Gnuplot
     FILE *gnuplotPipe = utils_gnuplot_open_pipe();
     utils_gnuplot_set_title(gnuplotPipe, "NArray Plot");
